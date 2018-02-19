@@ -11,15 +11,28 @@
         <option value="void">None</option>
         <option value="mic">Mic</option>
       </select>
+      >
       <select id="output">
         <option value="void">None</option>
         <option value="airplay">AirPlay</option>
+        <option value="speaker">Speaker/Headphones</option>
       </select>
     <script src="/socket.io/socket.io.js"></script>
     <script>
       var socket = io();
-      socket.on('switched_input', function(msg){
-        console.log(msg);
+      socket.on('switched_input', function(newInput){
+        console.log('switched_input', newInput);
+        var currentInputEl = document.getElementById('input');
+        if (newInput != currentInputEl.value){
+          currentInputEl.value = newInput;
+        }
+      });
+      socket.on('switched_output', function(newOutput){
+        console.log('switched_output', newOutput);
+        var currentOutputEl = document.getElementById('output');
+        if (newOutput != currentOutputEl.value){
+          currentOutputEl.value = newOutput;
+        }
       });
       
       document.addEventListener('change', async ev => {
