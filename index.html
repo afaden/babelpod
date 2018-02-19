@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <title>BabelPod</title>
+    <style>
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+      <select id="input">
+        <option value="void">None</option>
+        <option value="mic">Mic</option>
+      </select>
+      <select id="output">
+        <option value="void">None</option>
+        <option value="airplay">AirPlay</option>
+      </select>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io();
+      socket.on('switched_input', function(msg){
+        console.log(msg);
+      });
+      
+      document.addEventListener('change', async ev => {
+        if(ev.target.id === 'input') {
+          socket.emit('switch_input', ev.target.value);
+        }
+        if(ev.target.id === 'output') {
+          socket.emit('switch_output', ev.target.value);
+        }
+      });
+    </script>
+  </body>
+</html>

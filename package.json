@@ -1,0 +1,11 @@
+{
+  "name": "socket-example",
+  "version": "0.0.1",
+  "description": "my first socket.io app",
+  "dependencies": {
+    "airtunes": "../node_airtunes",
+    "express": "^4.15.2",
+    "socket.io": "^2.0.4",
+    "speaker": "^0.4.0"
+  }
+}
