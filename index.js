@@ -7,6 +7,7 @@ var mic = require('mic');
 var util = require('util');
 var stream = require('stream');
 const Speaker = require('speaker');
+var mdns = require('mdns');
 
 // Create ToVoid and FromVoid streams so we always have somewhere to send to and from.
 util.inherits(ToVoid, stream.Writable);
@@ -32,6 +33,40 @@ var outputStream = new ToVoid();
 var airplayDevice = null;
 var micInstance = null;
 var speakerInstance = null;
+var volume = 50;
+
+// find AirPlay speakers
+var availableOutputs = [
+  {
+    'name': 'None',
+    'id': 'void',
+    'type': 'void'
+  },
+  {
+    'name': 'Speaker/Headphones',
+    'id': 'speaker',
+    'type': 'speaker'
+  }
+];
+var browser = mdns.createBrowser(mdns.tcp('raop'));
+browser.on('serviceUp', function(service) {
+  // console.log("service up: ", service);
+  // console.log(service.addresses);
+  availableOutputs.push({
+    'name': 'AirPlay: ' + /([^@]+)@(.*)/.exec(service.name)[2],
+    'id': 'airplay_'+service.addresses[1]+'_'+service.port,
+    'type': 'airplay'
+    // 'address': service.addresses[1],
+    // 'port': service.port,
+    // 'host': service.host
+  });
+  io.emit('available_outputs', availableOutputs);
+  // console.log(airplayDevices);
+});
+// browser.on('serviceDown', function(service) {
+//   console.log("service down: ", service);
+// });
+browser.start();
 
 function cleanupCurrentInput(){
   inputStream.unpipe(outputStream);
@@ -58,20 +93,39 @@ app.get('/', function(req, res){
 
 io.on('connection', function(socket){
   console.log('a user connected');
+  // set current state
+  socket.emit('available_outputs', availableOutputs);
   socket.emit('switched_input', currentInput);
   socket.emit('switched_output', currentOutput);
+  socket.emit('changed_output_volume', volume);
+  
   socket.on('disconnect', function(){
     console.log('user disconnected');
+  });
+  
+  socket.on('change_output_volume', function(msg){
+    console.log('change_output_volume: ', msg);
+    volume = msg;
+    if (airplayDevice !== null) {
+      airplayDevice.setVolume(volume, function(){
+        console.log('changed airplay volume');
+      })
+    }
+    if (speakerInstance !== null){
+      console.log('todo: update speaker volume somehow');
+      //speakerInstance.close();
+    }
+    io.emit('changed_output_volume', msg);
   });
   
   socket.on('switch_output', function(msg){
     console.log('switch_output: ' + msg);
     currentOutput = msg;
     cleanupCurrentOutput();
-    if (msg === "airplay"){
-      var host = "192.168.1.13";
-      var port = "7000";
-      var volume = "40";
+    if (msg.startsWith("airplay")){
+      var split = msg.split("_");
+      var host = split[1];
+      var port = split[2];
       console.log('adding device: ' + host + ':' + port);
       airplayDevice = airtunes.add(host, {port: port, volume: volume});
       airplayDevice.on('status', function(status) {

@@ -5,6 +5,7 @@
   "dependencies": {
     "airtunes": "../node_airtunes",
     "express": "^4.15.2",
+    "mdns": "^2.3.4",
     "socket.io": "^2.0.4",
     "speaker": "^0.4.0"
   }

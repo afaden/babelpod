@@ -14,24 +14,43 @@
       >
       <select id="output">
         <option value="void">None</option>
-        <option value="airplay">AirPlay</option>
         <option value="speaker">Speaker/Headphones</option>
       </select>
+      <input type="range" min="1" max="100" value="50" class="slider" id="outputVolume">
     <script src="/socket.io/socket.io.js"></script>
     <script>
       var socket = io();
       socket.on('switched_input', function(newInput){
         console.log('switched_input', newInput);
-        var currentInputEl = document.getElementById('input');
-        if (newInput != currentInputEl.value){
-          currentInputEl.value = newInput;
+        var inputEl = document.getElementById('input');
+        if (newInput != inputEl.value){
+          inputEl.value = newInput;
         }
       });
       socket.on('switched_output', function(newOutput){
         console.log('switched_output', newOutput);
-        var currentOutputEl = document.getElementById('output');
-        if (newOutput != currentOutputEl.value){
-          currentOutputEl.value = newOutput;
+        var outputEl = document.getElementById('output');
+        if (newOutput != outputEl.value){
+          outputEl.value = newOutput;
+        }
+      });
+      socket.on('changed_output_volume', function(volume){
+        console.log('changed_output_volume', volume);
+        var outputVolumeEl = document.getElementById('outputVolume');
+        outputVolumeEl.value = volume;
+      });
+      socket.on('available_outputs', function(outputs){
+        console.log('available_outputs', outputs);
+        var outputEl = document.getElementById('output');
+        // remove current values
+        while (outputEl.firstChild) {
+          outputEl.removeChild(outputEl.firstChild);
+        }
+        for (var output of outputs){
+          var newOption = document.createElement('option');
+          newOption.innerText = output.name;
+          newOption.setAttribute('value', output.id);
+          outputEl.appendChild(newOption);
         }
       });
       
@@ -41,6 +60,9 @@
         }
         if(ev.target.id === 'output') {
           socket.emit('switch_output', ev.target.value);
+        }
+        if(ev.target.id === 'outputVolume') {
+          socket.emit('change_output_volume', ev.target.value);
         }
       });
     </script>
