@@ -3,37 +3,29 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var airtunes = require('airtunes');
 var spawn = require('child_process').spawn;
-var mic = require('mic');
 var util = require('util');
 var stream = require('stream');
-const Speaker = require('speaker');
 var mdns = require('mdns-js');
 var blue = require("bluetoothctl");
-blue.Bluetooth();
+var fs = require('fs');
 
 var availableInputs = [
   {
     'name': 'None',
     'id': 'void'
-  },
-  {
-    'name': 'Default',
-    'id': 'default'
   }
 ];
 
+var pcmDevicesString = fs.readFileSync('/proc/asound/pcm', 'utf8');
+var pcmDevicesArray = pcmDevicesString.split("\n").filter(line => line!="");
+var pcmDevices = pcmDevicesArray.map(device => {var splitDev = device.split(":");return {id: "plughw:"+splitDev[0].split("-").map(num => parseInt(num, 10)).join(","), name:splitDev[2].trim(), output: splitDev.some(part => part.includes("playback")), input: splitDev.some(part => part.includes("capture"))}});
+
+var inputPcmDevices = pcmDevices.filter(dev => dev.input);
+inputPcmDevices.forEach(dev => availableInputs.push(dev));
+
+blue.Bluetooth();
 blue.on(blue.bluetoothEvents.Device, function (devices) {
-  console.log('devices:' + JSON.stringify(devices,null,2));
-  availableInputs = [
-    {
-      'name': 'None',
-      'id': 'void'
-    },
-    {
-      'name': 'Default',
-      'id': 'default'
-    }
-  ];
+  console.log('devices:' + JSON.stringify(devices,null,2));  
   for (var device of blue.devices){
     availableInputs.push({
       'name': 'Bluetooth: '+device.name,
@@ -64,8 +56,8 @@ var currentOutput = "void";
 var inputStream = new FromVoid();
 var outputStream = new ToVoid();
 var airplayDevice = null;
-var micInstance = null;
-var speakerInstance = null;
+var arecordInstance = null;
+var aplayInstance = null;
 var volume = 50;
 
 // find AirPlay speakers
@@ -74,13 +66,12 @@ var availableOutputs = [
     'name': 'None',
     'id': 'void',
     'type': 'void'
-  },
-  {
-    'name': 'Speaker/Headphones',
-    'id': 'speaker',
-    'type': 'speaker'
   }
 ];
+
+var outputPcmDevices = pcmDevices.filter(dev => dev.output);
+outputPcmDevices.forEach(dev => availableOutputs.push(dev));
+
 var browser = mdns.createBrowser(mdns.tcp('raop'));
 browser.on('ready', function () {
     browser.discover(); 
@@ -111,8 +102,8 @@ browser.on('update', function (data) {
 
 function cleanupCurrentInput(){
   inputStream.unpipe(outputStream);
-  if (micInstance !== null){
-    micInstance.stop();
+  if (arecordInstance !== null){
+    arecordInstance.kill();
   }
 }
 
@@ -122,9 +113,11 @@ function cleanupCurrentOutput(){
     airplayDevice.stop(function(){
       console.log('stopped airplay device');
     })
+    airplayDevice = null;
   }
-  if (speakerInstance !== null){
-    speakerInstance.close();
+  if (aplayInstance !== null){
+    aplayInstance.kill();
+    aplayInstance = null;
   }
 }
 
@@ -153,9 +146,8 @@ io.on('connection', function(socket){
         console.log('changed airplay volume');
       })
     }
-    if (speakerInstance !== null){
+    if (aplayInstance !== null){
       console.log('todo: update speaker volume somehow');
-      //speakerInstance.close();
     }
     io.emit('changed_output_volume', msg);
   });
@@ -178,13 +170,15 @@ io.on('connection', function(socket){
         }
       });
     }
-    if (msg === "speaker"){
-      speakerInstance = new Speaker({
-        channels: 2,          // 2 channels
-        bitDepth: 16,         // 16-bit samples
-        sampleRate: 44100     // 44,100 Hz sample rate
-      });
-      outputStream = speakerInstance;
+    if (msg.startsWith("plughw:")){
+      aplayInstance = spawn("aplay", [
+        '-D', msg,
+        '-c', "2",
+        '-f', "S16_LE",
+        '-r', "44100"
+      ]);
+
+      outputStream = aplayInstance.stdin;
       inputStream.pipe(outputStream);
     }
     if (msg === "void"){
@@ -203,16 +197,15 @@ io.on('connection', function(socket){
       inputStream.pipe(outputStream);
     }
     if (msg !== "void"){
-      micInstance = mic({
-          rate: '44100',
-          channels: '2',
-          debug: true,
-          exitOnSilence: 0,
-          device: msg
-      });
-      inputStream = micInstance.getAudioStream();
+      arecordInstance = spawn("arecord", [
+        '-D', msg,
+        '-c', "2",
+        '-f', "S16_LE",
+        '-r', "44100"
+      ]);
+      inputStream = arecordInstance.stdout;
+
       inputStream.pipe(outputStream);
-      micInstance.start();
     }
     io.emit('switched_input', msg);
   });
