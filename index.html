@@ -9,12 +9,10 @@
     <ul id="messages"></ul>
       <select id="input">
         <option value="void">None</option>
-        <option value="mic">Mic</option>
       </select>
       >
       <select id="output">
         <option value="void">None</option>
-        <option value="speaker">Speaker/Headphones</option>
       </select>
       <input type="range" min="1" max="100" value="50" class="slider" id="outputVolume">
     <script src="/socket.io/socket.io.js"></script>
@@ -38,6 +36,20 @@
         console.log('changed_output_volume', volume);
         var outputVolumeEl = document.getElementById('outputVolume');
         outputVolumeEl.value = volume;
+      });
+      socket.on('available_inputs', function(inputs){
+        console.log('available_inputs', inputs);
+        var inputEl = document.getElementById('input');
+        // remove current values
+        while (inputEl.firstChild) {
+          inputEl.removeChild(inputEl.firstChild);
+        }
+        for (var input of inputs){
+          var newOption = document.createElement('option');
+          newOption.innerText = input.name;
+          newOption.setAttribute('value', input.id);
+          inputEl.appendChild(newOption);
+        }
       });
       socket.on('available_outputs', function(outputs){
         console.log('available_outputs', outputs);

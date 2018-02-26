@@ -4,8 +4,10 @@
   "description": "my first socket.io app",
   "dependencies": {
     "airtunes": "../node_airtunes",
+    "bluetoothctl": "^1.1.0",
     "express": "^4.15.2",
     "mdns-js": "^1.0.1",
+    "mic": "^2.1.2",
     "socket.io": "^2.0.4",
     "speaker": "^0.4.0"
   }

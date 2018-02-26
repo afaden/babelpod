@@ -8,6 +8,39 @@ var util = require('util');
 var stream = require('stream');
 const Speaker = require('speaker');
 var mdns = require('mdns-js');
+var blue = require("bluetoothctl");
+blue.Bluetooth();
+
+var availableInputs = [
+  {
+    'name': 'None',
+    'id': 'void'
+  },
+  {
+    'name': 'Default',
+    'id': 'default'
+  }
+];
+
+blue.on(blue.bluetoothEvents.Device, function (devices) {
+  console.log('devices:' + JSON.stringify(devices,null,2));
+  availableInputs = [
+    {
+      'name': 'None',
+      'id': 'void'
+    },
+    {
+      'name': 'Default',
+      'id': 'default'
+    }
+  ];
+  for (var device of blue.devices){
+    availableInputs.push({
+      'name': 'Bluetooth: '+device.name,
+      'id': 'bluealsa:HCI=hci0,DEV='+device.mac+',PROFILE=a2dp,DELAY=10000'
+    });
+  }
+})
 
 // Create ToVoid and FromVoid streams so we always have somewhere to send to and from.
 util.inherits(ToVoid, stream.Writable);
@@ -59,15 +92,15 @@ browser.on('update', function (data) {
   if (data.fullname){
     var splitName = /([^@]+)@(.*)\._raop\._tcp\.local/.exec(data.fullname);
     if (splitName != null && splitName.length > 1){
-  availableOutputs.push({
+      availableOutputs.push({
         'name': 'AirPlay: ' + splitName[2],
         'id': 'airplay_'+data.addresses[0]+'_'+data.port,
-    'type': 'airplay'
-    // 'address': service.addresses[1],
-    // 'port': service.port,
-    // 'host': service.host
-  });
-  io.emit('available_outputs', availableOutputs);
+        'type': 'airplay'
+        // 'address': service.addresses[1],
+        // 'port': service.port,
+        // 'host': service.host
+      });
+      io.emit('available_outputs', availableOutputs);
     }
   }
   // console.log(airplayDevices);
@@ -102,6 +135,7 @@ app.get('/', function(req, res){
 io.on('connection', function(socket){
   console.log('a user connected');
   // set current state
+  socket.emit('available_inputs', availableInputs);
   socket.emit('available_outputs', availableOutputs);
   socket.emit('switched_input', currentInput);
   socket.emit('switched_output', currentOutput);
@@ -164,20 +198,21 @@ io.on('connection', function(socket){
     console.log('switch_input: ' + msg);
     currentInput = msg;
     cleanupCurrentInput();
-    if (msg === "mic"){
+    if (msg === "void"){
+      inputStream = new FromVoid();
+      inputStream.pipe(outputStream);
+    }
+    if (msg !== "void"){
       micInstance = mic({
           rate: '44100',
           channels: '2',
-          debug: false,
-          exitOnSilence: 0
+          debug: true,
+          exitOnSilence: 0,
+          device: msg
       });
       inputStream = micInstance.getAudioStream();
       inputStream.pipe(outputStream);
       micInstance.start();
-    }
-    if (msg === "void"){
-      inputStream = new FromVoid();
-      inputStream.pipe(outputStream);
     }
     io.emit('switched_input', msg);
   });
