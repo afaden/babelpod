@@ -7,7 +7,7 @@ var mic = require('mic');
 var util = require('util');
 var stream = require('stream');
 const Speaker = require('speaker');
-var mdns = require('mdns');
+var mdns = require('mdns-js');
 
 // Create ToVoid and FromVoid streams so we always have somewhere to send to and from.
 util.inherits(ToVoid, stream.Writable);
@@ -49,24 +49,32 @@ var availableOutputs = [
   }
 ];
 var browser = mdns.createBrowser(mdns.tcp('raop'));
-browser.on('serviceUp', function(service) {
-  // console.log("service up: ", service);
+browser.on('ready', function () {
+    browser.discover(); 
+});
+browser.on('update', function (data) {
+  // console.log("service up: ", data);
   // console.log(service.addresses);
+  // console.log(data.fullname);
+  if (data.fullname){
+    var splitName = /([^@]+)@(.*)\._raop\._tcp\.local/.exec(data.fullname);
+    if (splitName != null && splitName.length > 1){
   availableOutputs.push({
-    'name': 'AirPlay: ' + /([^@]+)@(.*)/.exec(service.name)[2],
-    'id': 'airplay_'+service.addresses[1]+'_'+service.port,
+        'name': 'AirPlay: ' + splitName[2],
+        'id': 'airplay_'+data.addresses[0]+'_'+data.port,
     'type': 'airplay'
     // 'address': service.addresses[1],
     // 'port': service.port,
     // 'host': service.host
   });
   io.emit('available_outputs', availableOutputs);
+    }
+  }
   // console.log(airplayDevices);
 });
 // browser.on('serviceDown', function(service) {
 //   console.log("service down: ", service);
 // });
-browser.start();
 
 function cleanupCurrentInput(){
   inputStream.unpipe(outputStream);
