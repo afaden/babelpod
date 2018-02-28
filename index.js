@@ -9,31 +9,6 @@ var mdns = require('mdns-js');
 var blue = require("bluetoothctl");
 var fs = require('fs');
 
-var availableInputs = [
-  {
-    'name': 'None',
-    'id': 'void'
-  }
-];
-
-var pcmDevicesString = fs.readFileSync('/proc/asound/pcm', 'utf8');
-var pcmDevicesArray = pcmDevicesString.split("\n").filter(line => line!="");
-var pcmDevices = pcmDevicesArray.map(device => {var splitDev = device.split(":");return {id: "plughw:"+splitDev[0].split("-").map(num => parseInt(num, 10)).join(","), name:splitDev[2].trim(), output: splitDev.some(part => part.includes("playback")), input: splitDev.some(part => part.includes("capture"))}});
-
-var inputPcmDevices = pcmDevices.filter(dev => dev.input);
-inputPcmDevices.forEach(dev => availableInputs.push(dev));
-
-blue.Bluetooth();
-blue.on(blue.bluetoothEvents.Device, function (devices) {
-  console.log('devices:' + JSON.stringify(devices,null,2));  
-  for (var device of blue.devices){
-    availableInputs.push({
-      'name': 'Bluetooth: '+device.name,
-      'id': 'bluealsa:HCI=hci0,DEV='+device.mac+',PROFILE=a2dp,DELAY=10000'
-    });
-  }
-})
-
 // Create ToVoid and FromVoid streams so we always have somewhere to send to and from.
 util.inherits(ToVoid, stream.Writable);
 function ToVoid () {
@@ -59,18 +34,62 @@ var airplayDevice = null;
 var arecordInstance = null;
 var aplayInstance = null;
 var volume = 50;
+var availableOutputs = [];
+var availablePcmOutputs = []
+var availableAirplayOutputs = [];
+var availableInputs = [];
+var availableBluetoothInputs = [];
+var availablePcmInputs = [];
 
-// find AirPlay speakers
-var availableOutputs = [
-  {
-    'name': 'None',
-    'id': 'void',
-    'type': 'void'
+var pcmDeviceSearchLoop = setInterval(function(){
+  var pcmDevicesString = fs.readFileSync('/proc/asound/pcm', 'utf8');
+  var pcmDevicesArray = pcmDevicesString.split("\n").filter(line => line!="");
+  var pcmDevices = pcmDevicesArray.map(device => {var splitDev = device.split(":");return {id: "plughw:"+splitDev[0].split("-").map(num => parseInt(num, 10)).join(","), name:splitDev[2].trim(), output: splitDev.some(part => part.includes("playback")), input: splitDev.some(part => part.includes("capture"))}});
+  availablePcmOutputs = pcmDevices.filter(dev => dev.output);
+  availablePcmInputs = pcmDevices.filter(dev => dev.input);
+  updateAllInputs();
+  updateAllOutputs();
+}, 10000);
+
+blue.Bluetooth();
+blue.on(blue.bluetoothEvents.Device, function (devices) {
+  console.log('devices:' + JSON.stringify(devices,null,2));
+  availableBluetoothInputs = [];
+  for (var device of blue.devices){
+    availableBluetoothInputs.push({
+      'name': 'Bluetooth: '+device.name,
+      'id': 'bluealsa:HCI=hci0,DEV='+device.mac+',PROFILE=a2dp,DELAY=10000'
+    });
   }
-];
+  updateAllInputs();
+})
 
-var outputPcmDevices = pcmDevices.filter(dev => dev.output);
-outputPcmDevices.forEach(dev => availableOutputs.push(dev));
+function updateAllInputs(){
+  var defaultInputs = [
+    {
+      'name': 'None',
+      'id': 'void'
+    }
+  ];
+  availableInputs = defaultInputs.concat(availablePcmInputs, availableBluetoothInputs);
+  // todo only emit if updated
+  io.emit('available_inputs', availableInputs);
+}
+updateAllInputs();
+
+function updateAllOutputs(){
+  var defaultOutputs = [
+    {
+      'name': 'None',
+      'id': 'void',
+      'type': 'void'
+    }
+  ];
+  availableOutputs = defaultOutputs.concat(availablePcmOutputs, availableAirplayOutputs);
+  // todo only emit if updated
+  io.emit('available_outputs', availableOutputs);
+}
+updateAllOutputs();
 
 var browser = mdns.createBrowser(mdns.tcp('raop'));
 browser.on('ready', function () {
@@ -83,7 +102,8 @@ browser.on('update', function (data) {
   if (data.fullname){
     var splitName = /([^@]+)@(.*)\._raop\._tcp\.local/.exec(data.fullname);
     if (splitName != null && splitName.length > 1){
-      availableOutputs.push({
+      // TODO skip if already in list
+      availableAirplayOutputs.push({
         'name': 'AirPlay: ' + splitName[2],
         'id': 'airplay_'+data.addresses[0]+'_'+data.port,
         'type': 'airplay'
@@ -91,7 +111,7 @@ browser.on('update', function (data) {
         // 'port': service.port,
         // 'host': service.host
       });
-      io.emit('available_outputs', availableOutputs);
+      updateAllOutputs();
     }
   }
   // console.log(airplayDevices);
@@ -108,6 +128,8 @@ function cleanupCurrentInput(){
 }
 
 function cleanupCurrentOutput(){
+  console.log("inputStream", inputStream);
+  console.log("outputStream", outputStream);
   inputStream.unpipe(outputStream);
   if (airplayDevice !== null) {
     airplayDevice.stop(function(){

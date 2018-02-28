@@ -18,17 +18,21 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       var socket = io();
+      var currentInput = "void";
+      var currentOutput = "void";
       socket.on('switched_input', function(newInput){
         console.log('switched_input', newInput);
-        var inputEl = document.getElementById('input');
-        if (newInput != inputEl.value){
+        if (currentInput !== newInput){
+          currentInput = newInput;
+          var inputEl = document.getElementById('input');
           inputEl.value = newInput;
-        }
+        };
       });
       socket.on('switched_output', function(newOutput){
         console.log('switched_output', newOutput);
-        var outputEl = document.getElementById('output');
-        if (newOutput != outputEl.value){
+        if (currentOutput !== newOutput){
+          currentOutput = newOutput;
+          var outputEl = document.getElementById('output');
           outputEl.value = newOutput;
         }
       });
@@ -49,6 +53,9 @@
           newOption.innerText = input.name;
           newOption.setAttribute('value', input.id);
           inputEl.appendChild(newOption);
+          if (input.id === currentInput) {
+            inputEl.value = input.id;
+          }
         }
       });
       socket.on('available_outputs', function(outputs){
@@ -63,6 +70,9 @@
           newOption.innerText = output.name;
           newOption.setAttribute('value', output.id);
           outputEl.appendChild(newOption);
+          if (output.id === currentOutput) {
+            outputEl.value = output.id;
+          }
         }
       });
       
