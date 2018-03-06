@@ -174,7 +174,13 @@ io.on('connection', function(socket){
       })
     }
     if (aplayInstance !== null){
-      console.log('todo: update speaker volume somehow');
+      console.log('todo: update correct speaker based on currentOutput device ID');
+      console.log(currentOutput);
+      var amixer = spawn("amixer", [
+        '-c', "1",
+        '--', "sset",
+        'Speaker', volume+"%"
+      ]);
     }
     io.emit('changed_output_volume', msg);
   });
