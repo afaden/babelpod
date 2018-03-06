@@ -42,7 +42,12 @@ var availableBluetoothInputs = [];
 var availablePcmInputs = [];
 
 var pcmDeviceSearchLoop = setInterval(function(){
-  var pcmDevicesString = fs.readFileSync('/proc/asound/pcm', 'utf8');
+  try {
+    var pcmDevicesString = fs.readFileSync('/proc/asound/pcm', 'utf8');
+  } catch (e) {
+    console.log("audio input/output pcm devices could not be found");
+    return;
+  }
   var pcmDevicesArray = pcmDevicesString.split("\n").filter(line => line!="");
   var pcmDevices = pcmDevicesArray.map(device => {var splitDev = device.split(":");return {id: "plughw:"+splitDev[0].split("-").map(num => parseInt(num, 10)).join(","), name:splitDev[2].trim(), output: splitDev.some(part => part.includes("playback")), input: splitDev.some(part => part.includes("capture"))}});
   availablePcmOutputs = pcmDevices.filter(dev => dev.output);

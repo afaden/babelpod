@@ -2,19 +2,74 @@
 <html>
   <head>
     <title>BabelPod</title>
+    <meta name="viewport" content="width=device-width; initial-scale=1.5" />
     <style>
+      body {
+        font-family: Helvetica;
+        font-size: 14px;
+        margin: 0px;
+      }
+      h1 {
+        font-size: 1.8em;
+        background-color: grey;
+        color: white;
+        padding: 4px;
+        margin: 0px 0px 10px 0px;
+        width: 100%;
+      }
+      label {
+        font-size: 1.3em;
+        font-weight: bold;
+        margin: 4px;
+      }
+      select {
+        display: block;
+        width: 98%;
+        max-width: 496px;
+        font-family: inherit;
+        font-size: 1em;
+        margin-bottom: 10px;
+        margin-left: 4px;
+      }
+      input.slider {
+        max-width: 425px;
+        width: 100%;
+      }
+      .flexbox {
+        display: flex;
+        align-items: center;
+        width: 98%;
+        max-width: 500px;
+      }
     </style>
   </head>
   <body>
-    <ul id="messages"></ul>
-      <select id="input">
+    <h1>BabelPod</h1>
+      <label>Input</label>
+      <select id="input" size="4">
         <option value="void">None</option>
       </select>
-      >
-      <select id="output">
+      <label>Output</label>
+      <select id="output" size="4">
         <option value="void">None</option>
       </select>
-      <input type="range" min="1" max="100" value="50" class="slider" id="outputVolume">
+      <div class="flexbox">
+        <label>Volume</label>
+        <input type="range" min="1" max="100" value="50" class="slider" id="outputVolume" list="ticks">
+        <datalist id="ticks">
+          <option value="0" label="0%">
+          <option value="10">
+          <option value="20">
+          <option value="30">
+          <option value="40">
+          <option value="50" label="50%">
+          <option value="60">
+          <option value="70">
+          <option value="80">
+          <option value="90">
+          <option value="100" label="100%">
+        </datalist>
+      </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
       var socket = io();
