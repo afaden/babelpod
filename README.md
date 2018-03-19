@@ -1,6 +1,6 @@
 # BabelPod
 
-Add line-in and Bluetooth input to the HomePod (or other AirPlay speakers), intended to run on Raspberry Pi.
+Add line-in and Bluetooth input to the HomePod (or other AirPlay speakers). Intended to run on Raspberry Pi.
 
 ## Getting Started
 

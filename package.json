@@ -1,7 +1,7 @@
 {
-  "name": "socket-example",
+  "name": "babelpod",
   "version": "0.0.1",
-  "description": "my first socket.io app",
+  "description": "Add line-in and Bluetooth input to the HomePod (or other AirPlay speakers). Intended to run on Raspberry Pi.",
   "dependencies": {
     "airtunes": "../node_airtunes",
     "bluetoothctl": "^1.1.0",
