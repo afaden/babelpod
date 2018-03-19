@@ -41,6 +41,7 @@ var availableInputs = [];
 var availableBluetoothInputs = [];
 var availablePcmInputs = [];
 
+// Watch for new PCM input/output devices every 10 seconds
 var pcmDeviceSearchLoop = setInterval(function(){
   try {
     var pcmDevicesString = fs.readFileSync('/proc/asound/pcm', 'utf8');
@@ -56,6 +57,7 @@ var pcmDeviceSearchLoop = setInterval(function(){
   updateAllOutputs();
 }, 10000);
 
+// Watch for new Bluetooth devices
 blue.Bluetooth();
 blue.on(blue.bluetoothEvents.Device, function (devices) {
   console.log('devices:' + JSON.stringify(devices,null,2));
