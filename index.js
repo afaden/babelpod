@@ -1,13 +1,15 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var airtunes = require('airtunes');
 var spawn = require('child_process').spawn;
 var util = require('util');
 var stream = require('stream');
 var mdns = require('mdns-js');
-var blue = require("bluetoothctl");
+var blue = require('bluetoothctl');
 var fs = require('fs');
+var AirTunes = require('airtunes2');
+
+var airtunes = new AirTunes();
 
 // Create ToVoid and FromVoid streams so we always have somewhere to send to and from.
 util.inherits(ToVoid, stream.Writable);

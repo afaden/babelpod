@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Add line-in and Bluetooth input to the HomePod (or other AirPlay speakers). Intended to run on Raspberry Pi.",
   "dependencies": {
-    "airtunes": "../node_airtunes",
+    "airtunes2": "maexdaemaege/node_airtunes2",
     "bluetoothctl": "^1.1.0",
     "express": "^4.17.1",
     "mdns-js": "^1.0.3",
