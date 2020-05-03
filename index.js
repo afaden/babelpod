@@ -59,15 +59,6 @@ var pcmDeviceSearchLoop = setInterval(function(){
   updateAllOutputs();
 }, 10000);
 
-// set airplay volume every 60 seconds to keep connection alive
-var airplayKeepAliveSetVolumeLoop = setInterval(function(){
-  if (airplayDevice !== null) {
-    airplayDevice.setVolume(volume, function(){
-      console.log('set airplay volume to keep connection alive');
-    });
-  }
-}, 60000);
-
 // Watch for new Bluetooth devices
 blue.Bluetooth();
 blue.on(blue.bluetoothEvents.Device, function (devices) {
