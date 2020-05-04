@@ -43,8 +43,8 @@ var availableInputs = [];
 var availableBluetoothInputs = [];
 var availablePcmInputs = [];
 
-// Watch for new PCM input/output devices every 10 seconds
-var pcmDeviceSearchLoop = setInterval(function(){
+// Search for new PCM input/output devices
+function pcmDeviceSearch(){
   try {
     var pcmDevicesString = fs.readFileSync('/proc/asound/pcm', 'utf8');
   } catch (e) {
@@ -57,7 +57,12 @@ var pcmDeviceSearchLoop = setInterval(function(){
   availablePcmInputs = pcmDevices.filter(dev => dev.input);
   updateAllInputs();
   updateAllOutputs();
-}, 10000);
+}
+// Perform initial search for PCM devices
+pcmDeviceSearch();
+
+// Watch for new PCM input/output devices every 10 seconds
+var pcmDeviceSearchLoop = setInterval(pcmDeviceSearch, 10000);
 
 // Watch for new Bluetooth devices
 blue.Bluetooth();
