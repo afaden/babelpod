@@ -116,16 +116,19 @@ browser.on('update', function (data) {
   if (data.fullname){
     var splitName = /([^@]+)@(.*)\._raop\._tcp\.local/.exec(data.fullname);
     if (splitName != null && splitName.length > 1){
-      // TODO skip if already in list
-      availableAirplayOutputs.push({
-        'name': 'AirPlay: ' + splitName[2],
-        'id': 'airplay_'+data.addresses[0]+'_'+data.port,
-        'type': 'airplay'
-        // 'address': service.addresses[1],
-        // 'port': service.port,
-        // 'host': service.host
-      });
-      updateAllOutputs();
+      var id = 'airplay_'+data.addresses[0]+'_'+data.port;
+
+      if (!availableAirplayOutputs.some(e => e.id === id)) {
+        availableAirplayOutputs.push({
+          'name': 'AirPlay: ' + splitName[2],
+          'id': id,
+          'type': 'airplay'
+          // 'address': service.addresses[1],
+          // 'port': service.port,
+          // 'host': service.host
+        });
+        updateAllOutputs();
+      }
     }
   }
   // console.log(airplayDevices);
@@ -198,6 +201,8 @@ io.on('connection', function(socket){
     console.log('switch_output: ' + msg);
     currentOutput = msg;
     cleanupCurrentOutput();
+
+    // TODO: rewrite how devices are stored to avoid the array split thingy
     if (msg.startsWith("airplay")){
       var split = msg.split("_");
       var host = split[1];
