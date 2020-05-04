@@ -214,6 +214,13 @@ io.on('connection', function(socket){
         if(status === 'ready'){
           outputStream = airtunes;
           inputStream.pipe(outputStream);
+
+          // at this moment the rtsp setup is not fully done yet and the status
+          // is still SETVOLUME. There's currently no way to check if setup is
+          // completed, so we just wait a second before setting the track info.
+          // Unfortunately we don't have the fancy input name here. Will get fixed
+          // with a better way of storing devices.
+          setTimeout(() => { airplayDevice.setTrackInfo(currentInput, 'BabelPod', '') }, 1000);
         }
       });
     }
