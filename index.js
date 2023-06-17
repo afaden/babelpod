@@ -5,7 +5,6 @@ var spawn = require('child_process').spawn;
 var util = require('util');
 var stream = require('stream');
 var mdns = require('mdns-js');
-var blue = require('bluetoothctl');
 var fs = require('fs');
 var AirTunes = require('airtunes2');
 
@@ -35,7 +34,7 @@ var outputStream = new ToVoid();
 var airplayDevice = null;
 var arecordInstance = null;
 var aplayInstance = null;
-var volume = 50;
+var volume = 20;
 var availableOutputs = [];
 var availablePcmOutputs = []
 var availableAirplayOutputs = [];
@@ -65,7 +64,7 @@ pcmDeviceSearch();
 var pcmDeviceSearchLoop = setInterval(pcmDeviceSearch, 10000);
 
 // Watch for new Bluetooth devices
-blue.Bluetooth();
+/*blue.Bluetooth();
 blue.on(blue.bluetoothEvents.Device, function (devices) {
   console.log('devices:' + JSON.stringify(devices,null,2));
   availableBluetoothInputs = [];
@@ -76,7 +75,7 @@ blue.on(blue.bluetoothEvents.Device, function (devices) {
     });
   }
   updateAllInputs();
-})
+})*/
 
 function updateAllInputs(){
   var defaultInputs = [
@@ -141,6 +140,7 @@ function cleanupCurrentInput(){
   inputStream.unpipe(outputStream);
   if (arecordInstance !== null){
     arecordInstance.kill();
+    arecordInstance = null;
   }
 }
 
@@ -163,6 +163,8 @@ function cleanupCurrentOutput(){
 app.get('/', function(req, res){
   res.sendFile(__dirname + '/index.html');
 });
+
+let logPipeError = function(e) {console.log('inputStream.pipe error: ' + e.message)};
 
 io.on('connection', function(socket){
   console.log('a user connected');
@@ -213,7 +215,7 @@ io.on('connection', function(socket){
         console.log('airplay status: ' + status);
         if(status === 'ready'){
           outputStream = airtunes;
-          inputStream.pipe(outputStream);
+          inputStream.pipe(outputStream).on('error', logPipeError);
 
           // at this moment the rtsp setup is not fully done yet and the status
           // is still SETVOLUME. There's currently no way to check if setup is
@@ -233,11 +235,11 @@ io.on('connection', function(socket){
       ]);
 
       outputStream = aplayInstance.stdin;
-      inputStream.pipe(outputStream);
+      inputStream.pipe(outputStream).on('error', logPipeError);
     }
     if (msg === "void"){
       outputStream = new ToVoid();
-      inputStream.pipe(outputStream);
+      inputStream.pipe(outputStream).on('error', logPipeError);
     }
     io.emit('switched_output', msg);
   });
@@ -248,7 +250,7 @@ io.on('connection', function(socket){
     cleanupCurrentInput();
     if (msg === "void"){
       inputStream = new FromVoid();
-      inputStream.pipe(outputStream);
+      inputStream.pipe(outputStream).on('error', logPipeError);
     }
     if (msg !== "void"){
       arecordInstance = spawn("arecord", [
@@ -259,7 +261,7 @@ io.on('connection', function(socket){
       ]);
       inputStream = arecordInstance.stdout;
 
-      inputStream.pipe(outputStream);
+      inputStream.pipe(outputStream).on('error', logPipeError);
     }
     io.emit('switched_input', msg);
   });
