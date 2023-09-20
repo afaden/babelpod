@@ -167,7 +167,7 @@ browser.on('update', function (data) {
           if (txtValue.startsWith("gpn=")) {
             stereoName = txtValue.substring(4)
           } else if (txtValue.startsWith("model=")) {
-            tv = txtValue.includes('AppleTV');
+            tv = txtValue.includes('AppleTV') || tv;
           }
         });
 
