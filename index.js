@@ -158,12 +158,15 @@ browser.on('update', function (data) {
     if (splitName != null && splitName.length > 1){
       var id = 'airplay_'+data.addresses[0]+'_'+data.port;
       var stereoName = false;
+      var tv = false;
 
       if (!availableAirplayOutputs.some(e => e.id === id)) {
         data.txt.forEach( txtValue => {
           if (txtValue.startsWith("gpn=")) {
             stereoName = txtValue.substring(4)
-          }         
+          } else if (txtValue.startsWith("model=")) {
+            tv = txtValue.includes('AppleTV');
+          }
         });
 
         availableAirplayOutputs.push({
@@ -173,6 +176,7 @@ browser.on('update', function (data) {
           'stereo': stereoName,
           'host': data.addresses[0],
           'port': data.port,
+          'tv': tv
           // 'host': service.host
         });
         updateAllOutputs();
@@ -197,7 +201,7 @@ function statHandler(status) {
   console.log('airplay status: ' + status);
   if(status === 'ready'){
     outputStream = airtunes;
-    inputStream.pipe(outputStream).on('error', logPipeError);
+    inputStream.pipe(outputStream, {end: false}).on('error', logPipeError);
 
     // at this moment the rtsp setup is not fully done yet and the status
     // is still SETVOLUME. There's currently no way to check if setup is
@@ -286,10 +290,22 @@ io.on('connection', function(socket){
 
     // TODO: rewrite how devices are stored to avoid the array split thingy
     if (msg.startsWith("airplay")) {
+      var isStereo = false;
       selectedOutput = availableAirplayOutputs.find(output => output.id === msg);
 
+      if( selectedOutput.stereo !== false ) {
+        isStereo = true;
+        selectedOutput = availableAirplayOutputs.find(output => output.stereo === selectedOutput.stereo && output.tv === false);
+        stereoOutput = availableAirplayOutputs.find(output => output.id !== selectedOutput.id && output.stereo === selectedOutput.stereo && output.tv === false);
+      }
+
       console.log('adding device: ' + selectedOutput.host + ':' + selectedOutput.port);
-      airplayDevice = airtunes.add(selectedOutput.host, {port: selectedOutput.port, volume: volume})
+      airplayDevice = airtunes.add(selectedOutput.host, {port: selectedOutput.port, volume: volume, stereo: isStereo})
+
+      if( isStereo && stereoOutput !== null ) {
+        console.log('adding stereo device: ' + stereoOutput.host + ':' + stereoOutput.port);
+        stereoAirplayDevice = airtunes.add(stereoOutput.host, {port: stereoOutput.port, volume: volume, stereo: isStereo});
+      }
 
       airplayDevice.on('status', statHandler);
     }
@@ -317,7 +333,10 @@ io.on('connection', function(socket){
     cleanupCurrentInput();
     if (msg === "void"){
       inputStream = new FromVoid();
-      inputStream.pipe(outputStream).on('error', logPipeError);
+      if (outputStream === airtunes)
+        inputStream.pipe(outputStream, {end: false}).on('error', logPipeError);
+      else
+        inputStream.pipe(outputStream).on('error', logPipeError);
     }
     if (msg !== "void"){
       arecordInstance = spawn("arecord", [
