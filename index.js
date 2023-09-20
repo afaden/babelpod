@@ -148,7 +148,11 @@ updateAllOutputs();
 
 var browser = mdns.createBrowser(mdns.tcp('airplay'));
 browser.on('ready', function () {
+  browser.discover(); 
+  setInterval(function () {
     browser.discover(); 
+  }, 30000);
+    
 });
 
 browser.on('update', function (data) {
