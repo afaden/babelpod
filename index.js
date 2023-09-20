@@ -78,7 +78,7 @@ blue.on(blue.bluetoothEvents.Device, function (devices) {
   for (var device of blue.devices){
     availableBluetoothInputs.push({
       'name': 'Bluetooth: '+device.name,
-      'id': 'bluealsa:SRV=org.bluealsa,DEV='+device.mac+',PROFILE=a2dp,DELAY=10000',
+      'id': 'bluealsa:SRV=org.bluealsa,DEV='+device.mac+',PROFILE=a2dp',
       'mac': device.mac,
       'connected': device.connected == 'yes'
     });
