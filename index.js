@@ -7,6 +7,7 @@ var stream = require('stream');
 var mdns = require('mdns-js');
 var fs = require('fs');
 var AirTunes = require('airtunes2');
+var blue = require('bluetoothctl');
 
 var airtunes = new AirTunes();
 
@@ -64,18 +65,32 @@ pcmDeviceSearch();
 var pcmDeviceSearchLoop = setInterval(pcmDeviceSearch, 10000);
 
 // Watch for new Bluetooth devices
-/*blue.Bluetooth();
+blue.Bluetooth();
+
+setTimeout(function(){
+  blue.getPairedDevices()
+  availableBluetoothInputs = [];
+  for (var device of blue.devices){
+    availableBluetoothInputs.push({
+      'name': 'Bluetooth: '+device.name,
+      'id': 'bluealsa:SRV=org.bluealsa,DEV='+device.mac+',PROFILE=a2dp,DELAY=2000'
+    });
+  }
+  updateAllInputs();
+  console.log(blue.devices);
+}, 10000);
+
 blue.on(blue.bluetoothEvents.Device, function (devices) {
   console.log('devices:' + JSON.stringify(devices,null,2));
   availableBluetoothInputs = [];
   for (var device of blue.devices){
     availableBluetoothInputs.push({
       'name': 'Bluetooth: '+device.name,
-      'id': 'bluealsa:HCI=hci0,DEV='+device.mac+',PROFILE=a2dp,DELAY=10000'
+      'id': 'bluealsa:SRV=org.bluealsa,DEV='+device.mac+',PROFILE=a2dp,DELAY=2000'
     });
   }
   updateAllInputs();
-})*/
+})
 
 function updateAllInputs(){
   var defaultInputs = [
