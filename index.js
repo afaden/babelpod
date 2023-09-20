@@ -78,7 +78,9 @@ blue.on(blue.bluetoothEvents.Device, function (devices) {
   for (var device of blue.devices){
     availableBluetoothInputs.push({
       'name': 'Bluetooth: '+device.name,
-      'id': 'bluealsa:SRV=org.bluealsa,DEV='+device.mac+',PROFILE=a2dp,DELAY=10000'
+      'id': 'bluealsa:SRV=org.bluealsa,DEV='+device.mac+',PROFILE=a2dp,DELAY=10000',
+      'mac': device.mac,
+      'connected': device.connected == 'yes'
     });
   }
   updateAllInputs();
@@ -339,6 +341,27 @@ io.on('connection', function(socket){
         inputStream.pipe(outputStream).on('error', logPipeError);
     }
     if (msg !== "void"){
+      if (msg.includes('bluealsa')) {
+        let theOutput = availableBluetoothInputs.find(object => object.id === msg);
+        if (theOutput.connected == false) {
+          blue.connect(theOutput.mac)
+          setTimeout(function() {
+            blue.info(theOutput.mac)
+            arecordInstance = spawn("arecord", [
+              '-D', msg,
+              '-c', "2",
+              '-f', "S16_LE",
+              '-r', "44100"
+            ]);
+            inputStream = arecordInstance.stdout;
+      
+            inputStream.pipe(outputStream).on('error', logPipeError);
+
+            io.emit('switched_input', msg);
+          }, 5000)
+          return;
+        }
+      }
       arecordInstance = spawn("arecord", [
         '-D', msg,
         '-c', "2",
@@ -348,6 +371,7 @@ io.on('connection', function(socket){
       inputStream = arecordInstance.stdout;
 
       inputStream.pipe(outputStream).on('error', logPipeError);
+      
     }
     io.emit('switched_input', msg);
   });
