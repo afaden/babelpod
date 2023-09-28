@@ -8,6 +8,7 @@ var mdns = require('mdns-js');
 var fs = require('fs');
 var AirTunes = require('airtunes2');
 var blue = require('bluetoothctl');
+const { error } = require('console');
 
 var airtunes = new AirTunes();
 
@@ -218,6 +219,13 @@ function statHandler(status) {
   }
 }
 
+function errorHandler(error) {
+  console.log('airplay error: ' + error);
+  this.stop(function() {
+    console.log('device was stopped')
+  })
+}
+
 function cleanupCurrentOutput(){
   console.log("inputStream", inputStream);
   console.log("outputStream", outputStream);
@@ -307,10 +315,12 @@ io.on('connection', function(socket){
 
       console.log('adding device: ' + selectedOutput.host + ':' + selectedOutput.port);
       airplayDevice = airtunes.add(selectedOutput.host, {port: selectedOutput.port, volume: volume, stereo: isStereo})
+      airplayDevice.on('error', errorHandler)
 
       if( isStereo && stereoOutput !== null ) {
         console.log('adding stereo device: ' + stereoOutput.host + ':' + stereoOutput.port);
         stereoAirplayDevice = airtunes.add(stereoOutput.host, {port: stereoOutput.port, volume: volume, stereo: isStereo});
+        stereoAirplayDevice.on('error', errorHandler)
       }
 
       airplayDevice.on('status', statHandler);
