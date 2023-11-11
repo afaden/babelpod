@@ -271,8 +271,6 @@ function errorHandler(error) {
 }
 
 function cleanupCurrentOutput(){
-  console.log("inputStream", inputStream);
-  console.log("outputStream", outputStream);
   inputStream.unpipe(outputStream);
   airplayDevices.forEach(airplayDevice => {
     if (airplayDevice !== null) {
