@@ -197,9 +197,9 @@ browser.on('serviceDown', function(data) {
       stereoName = data.txt.gpn || false
       
       if (stereoName)
-        availableAirplayStereoOutputs = availableAirplayStereoOutputs.some(e => e.id !== stereoName)
+        availableAirplayStereoOutputs = availableAirplayStereoOutputs.filter(e => e.id !== stereoName)
       else
-        availableAirplayOutputs = availableAirplayOutputs.some(e => e.id !== id)
+        availableAirplayOutputs = availableAirplayOutputs.filter(e => e.id !== id)
 
       updateAllOutputs()
     }
