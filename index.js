@@ -190,10 +190,7 @@ browser.on('serviceUp', function (data) {
   }
   // console.log(airplayDevices);
 });
-browser.on('serviceChanged', function(service) {
-  var id = 'airplay_'+data.addresses[0]+'_'+data.port;
-  var stereoName = false;
-  var tv = false;
+browser.on('serviceChanged', function(data) {
   if (data.fullname) {
     var splitName = /(.*)\._airplay\._tcp\.local/.exec(data.fullname);
     if (splitName != null && splitName.length > 1) {
@@ -208,13 +205,13 @@ browser.on('serviceChanged', function(service) {
       if (stereoName) {
         var device = availableAirplayStereoOutputs[stereoName].devices.find(dev => dev.id === id)
         device.name = 'AirPlay: ' + splitName[1]
-        device.host = service.addresses[0]
-        device.port = service.port
+        device.host = data.addresses[0]
+        device.port = data.port
       } else {
         var device = availableAirplayOutputs.find(dev => dev.id === id)
         device.name = 'AirPlay: ' + splitName[1]
-        device.host = service.addresses[0]
-        device.port = service.port
+        device.host = data.addresses[0]
+        device.port = data.port
       }
 
       updateAllOutputs()
@@ -222,10 +219,7 @@ browser.on('serviceChanged', function(service) {
   }
 })
 
-browser.on('serviceDown', function(service) {
-  var id = 'airplay_'+data.addresses[0]+'_'+data.port;
-  var stereoName = false;
-  var tv = false;
+browser.on('serviceDown', function(data) {
   if (data.fullname){
     var splitName = /(.*)\._airplay\._tcp\.local/.exec(data.fullname);
     if (splitName != null && splitName.length > 1){
