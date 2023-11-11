@@ -74,7 +74,7 @@ setTimeout(function(){
 }, 5000);
 
 blue.on(blue.bluetoothEvents.Device, function (devices) {
-  console.log('devices:' + JSON.stringify(devices,null,2));
+  // ('devices:' + JSON.stringify(devices,null,2));
   availableBluetoothInputs = [];
   for (var device of blue.devices){
     availableBluetoothInputs.push({
