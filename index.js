@@ -61,6 +61,7 @@ function pcmDeviceSearch(){
   updateAllOutputs();
 }
 
+// Only if PCM devices are enabled through env variable
 if (process.env.PCM) {
   // Perform initial search for PCM devices
   pcmDeviceSearch();
@@ -115,37 +116,6 @@ function updateAllOutputs(){
 }
 updateAllOutputs();
 
-// var browser = mdns.createBrowser(mdns.tcp('raop'));
-// browser.on('ready', function () {
-//     browser.discover(); 
-// });
-// browser.on('update', function (data) {
-//   // console.log("service up: ", data);
-//   // console.log(service.addresses);
-//   // console.log(data.fullname);
-//   if (data.fullname){
-//     var splitName = /([^@]+)@(.*)\._raop\._tcp\.local/.exec(data.fullname);
-//     if (splitName != null && splitName.length > 1){
-//       var id = 'airplay_'+data.addresses[0]+'_'+data.port;
-
-//       if (!availableAirplayOutputs.some(e => e.id === id)) {
-//         availableAirplayOutputs.push({
-//           'name': 'AirPlay: ' + splitName[2],
-//           'id': id,
-//           'type': 'airplay',
-//           // 'address': service.addresses[1],
-//           // 'port': service.port,
-//           // 'host': service.host
-//         });
-//         updateAllOutputs();
-//       }
-//     }
-//   }
-//   // console.log(airplayDevices);
-// });
-// // browser.on('serviceDown', function(service) {
-// //   console.log("service down: ", service);
-// // });
 
 var browser = mdns.Browser(mdns.tcp('airplay'));
 
@@ -158,10 +128,8 @@ browser.on('serviceUp', function (data) {
     if (splitName != null && splitName.length > 1){
       var id = 'airplay_'+data.addresses[0]+'_'+data.port;
       var stereoName = false;
-      var tv = false;
+      
       stereoName = data.txt.gpn || false
-      tv = data.txt.model && data.txt.model.includes('AppleTV') || tv
-      if (tv && stereoName) return
       
       if (stereoName) {
         if (!availableAirplayStereoOutputs[stereoName]) 
@@ -199,11 +167,8 @@ browser.on('serviceChanged', function(data) {
     if (splitName != null && splitName.length > 1) {
       var id = 'airplay_'+data.addresses[0]+'_'+data.port;
       var stereoName = false;
-      var tv = false;
 
       stereoName = data.txt.gpn || false
-      tv = data.txt.model && data.txt.model.includes('AppleTV') || tv
-      if (tv && stereoName) return
 
       if (stereoName) {
         var device = availableAirplayStereoOutputs[stereoName].devices.find(dev => dev.id === id)
@@ -228,11 +193,9 @@ browser.on('serviceDown', function(data) {
     if (splitName != null && splitName.length > 1){
       var id = 'airplay_'+data.addresses[0]+'_'+data.port;
       var stereoName = false;
-      var tv = false;
 
       stereoName = data.txt.gpn || false
-      tv = data.txt.model && data.txt.model.includes('AppleTV') || tv
-      if (tv && stereoName) return
+      
       if (stereoName)
         availableAirplayStereoOutputs = availableAirplayStereoOutputs.some(e => e.id !== stereoName)
       else
