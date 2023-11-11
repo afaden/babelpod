@@ -161,13 +161,10 @@ browser.on('serviceUp', function (data) {
       var tv = false;
 
       if (!availableAirplayOutputs.some(e => e.id === id)) {
-        data.txt.forEach( txtValue => {
-          if (txtValue.startsWith("gpn=")) {
-            stereoName = txtValue.substring(4)
-          } else if (txtValue.startsWith("model=")) {
-            tv = txtValue.includes('AppleTV') || tv;
-          }
-        });
+        
+        stereoName = data.txt.gpn || false
+        tv = data.txt.model && data.txt.model.includes('AppleTV') || tv;
+        
 
         availableAirplayOutputs.push({
           'name': 'AirPlay: ' + splitName[1],
