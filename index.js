@@ -68,10 +68,7 @@ var pcmDeviceSearchLoop = setInterval(pcmDeviceSearch, 10000);
 
 // Watch for new Bluetooth devices
 blue.Bluetooth();
-
-setTimeout(function(){
-  blue.getPairedDevices()
-}, 5000);
+setTimeout(() => blue.getPairedDevices(), 5000)
 
 blue.on(blue.bluetoothEvents.Device, function (devices) {
   // ('devices:' + JSON.stringify(devices,null,2));
