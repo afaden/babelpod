@@ -60,11 +60,14 @@ function pcmDeviceSearch(){
   updateAllInputs();
   updateAllOutputs();
 }
-// Perform initial search for PCM devices
-pcmDeviceSearch();
 
-// Watch for new PCM input/output devices every 10 seconds
-var pcmDeviceSearchLoop = setInterval(pcmDeviceSearch, 10000);
+if (process.env.PCM) {
+  // Perform initial search for PCM devices
+  pcmDeviceSearch();
+
+  // Watch for new PCM input/output devices every 10 seconds
+  var pcmDeviceSearchLoop = setInterval(pcmDeviceSearch, 10000);
+}
 
 // Watch for new Bluetooth devices
 blue.Bluetooth();
