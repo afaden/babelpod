@@ -228,8 +228,6 @@ function cleanupCurrentInput(){
 function statHandler(status) {
   console.log('airplay status: ' + status);
   if(status === 'ready'){
-    outputStream = airtunes;
-    inputStream.pipe(outputStream, {end: false}).on('error', logPipeError);
 
     // at this moment the rtsp setup is not fully done yet and the status
     // is still SETVOLUME. There's currently no way to check if setup is
@@ -330,6 +328,10 @@ io.on('connection', function(socket){
         airplayDevice.on('status', statHandler);
         airplayDevices.push(airplayDevice)
       })
+
+
+      outputStream = airtunes;
+      inputStream.pipe(outputStream, {end: false}).on('error', logPipeError);
     }
     if (msg.startsWith("airplay")) {
       selectedOutput = availableAirplayOutputs.find(output => output.id === msg);
@@ -341,6 +343,9 @@ io.on('connection', function(socket){
 
       airplayDevice.on('status', statHandler);
       airplayDevices.push(airplayDevice)
+
+      outputStream = airtunes;
+      inputStream.pipe(outputStream, {end: false}).on('error', logPipeError);
     }
     if (msg.startsWith("plughw:")){
       aplayInstance = spawn("aplay", [
