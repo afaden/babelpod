@@ -33,14 +33,14 @@ var currentInput = "void";
 var currentOutput = "void";
 var inputStream = new FromVoid();
 var outputStream = new ToVoid();
-var airplayDevice = null;
-var stereoAirplayDevice = null;
+var airplayDevices = [];
 var arecordInstance = null;
 var aplayInstance = null;
 var volume = 20;
 var availableOutputs = [];
 var availablePcmOutputs = []
 var availableAirplayOutputs = [];
+var availableAirplayStereoOutputs = {}
 var availableInputs = [];
 var availableBluetoothInputs = [];
 var availablePcmInputs = [];
@@ -109,7 +109,7 @@ function updateAllOutputs(){
       'stereo': 'void'
     }
   ];
-  availableOutputs = defaultOutputs.concat(availablePcmOutputs, availableAirplayOutputs);
+  availableOutputs = defaultOutputs.concat(availablePcmOutputs, Object.values(availableAirplayStereoOutputs), availableAirplayOutputs);
   // todo only emit if updated
   io.emit('available_outputs', availableOutputs);
 }
@@ -150,7 +150,7 @@ updateAllOutputs();
 var browser = mdns.Browser(mdns.tcp('airplay'));
 
 browser.on('serviceUp', function (data) {
-  console.log("service up: ", data);
+  // console.log("service up: ", data);
   // console.log(service.addresses);
   // console.log(data.fullname);
   if (data.fullname){
@@ -159,32 +159,60 @@ browser.on('serviceUp', function (data) {
       var id = 'airplay_'+data.addresses[0]+'_'+data.port;
       var stereoName = false;
       var tv = false;
-
-      if (!availableAirplayOutputs.some(e => e.id === id)) {
-        
-        stereoName = data.txt.gpn || false
-        tv = data.txt.model && data.txt.model.includes('AppleTV') || tv;
-        
-
+      stereoName = data.txt.gpn || false
+      tv = data.txt.model && data.txt.model.includes('AppleTV') || tv
+      if (tv && stereoName) return
+      
+      if (stereoName) {
+        if (!availableAirplayStereoOutputs[stereoName]) 
+          availableAirplayStereoOutputs[stereoName] = {
+            'id': 'stereoAirplay_' + stereoName,
+            'name': stereoName,
+            'type': 'stereoAirplay',
+            'devices': []
+          }
+        availableAirplayStereoOutputs[stereoName].devices.push({
+          'name': 'AirPlay: ' + splitName[1],
+          'id': id,
+          'type': 'airplay',
+          'host': data.addresses[0],
+          'port': data.port
+          // 'host': service.host
+        })
+      } else
         availableAirplayOutputs.push({
           'name': 'AirPlay: ' + splitName[1],
           'id': id,
           'type': 'airplay',
-          'stereo': stereoName,
           'host': data.addresses[0],
-          'port': data.port,
-          'tv': tv
+          'port': data.port
           // 'host': service.host
-        });
-        updateAllOutputs();
-      }
+        })
+      updateAllOutputs()
     }
   }
   // console.log(airplayDevices);
 });
 browser.on('serviceDown', function(service) {
-   console.log("service down: ", service)
-   availableAirplayOutputs = availableAirplayOutputs.some(e => e.id !== id)
+  var id = 'airplay_'+data.addresses[0]+'_'+data.port;
+  var stereoName = false;
+  var tv = false;
+  if (data.fullname){
+    var splitName = /(.*)\._airplay\._tcp\.local/.exec(data.fullname);
+    if (splitName != null && splitName.length > 1){
+      var id = 'airplay_'+data.addresses[0]+'_'+data.port;
+      var stereoName = false;
+      var tv = false;
+
+      stereoName = data.txt.gpn || false
+      tv = data.txt.model && data.txt.model.includes('AppleTV') || tv
+      if (tv && stereoName) return
+      if (stereoName)
+        availableAirplayStereoOutputs = availableAirplayStereoOutputs.some(e => e.id !== stereoName)
+      else
+        availableAirplayOutputs = availableAirplayOutputs.some(e => e.id !== id)
+    }
+  }
 });
 
 browser.start()
@@ -208,7 +236,7 @@ function statHandler(status) {
     // completed, so we just wait a second before setting the track info.
     // Unfortunately we don't have the fancy input name here. Will get fixed
     // with a better way of storing devices.
-    setTimeout(() => { airplayDevice.setTrackInfo(currentInput, 'BabelPod', '') }, 1000);
+    setTimeout(() => { this.setTrackInfo(currentInput, 'BabelPod', '') }, 1000);
   }
 }
 
@@ -223,19 +251,17 @@ function cleanupCurrentOutput(){
   console.log("inputStream", inputStream);
   console.log("outputStream", outputStream);
   inputStream.unpipe(outputStream);
-  if (airplayDevice !== null) {
-    airplayDevice.stop(function(){
-      console.log('stopped airplay device');
-    })
-    airplayDevice.off('status', statHandler)
-    airplayDevice = null;
-  }
-  if( stereoAirplayDevice !== null ) {
-    stereoAirplayDevice.stop(function(){
-      console.log('stopped airplay device');
-    })
-    stereoAirplayDevice = null;
-  }
+  airplayDevices.forEach(airplayDevice => {
+    if (airplayDevice !== null) {
+      airplayDevice.stop(function(){
+        console.log('stopped airplay device');
+      })
+      airplayDevice.off('status', statHandler)
+      airplayDevice = null;
+    }
+  })
+
+  airplayDevices = []
 
   if (aplayInstance !== null){
     aplayInstance.kill();
@@ -267,16 +293,13 @@ io.on('connection', function(socket){
   socket.on('change_output_volume', function(msg){
     console.log('change_output_volume: ', msg);
     volume = msg;
-    if (airplayDevice !== null) {
-      airplayDevice.setVolume(volume, function(){
-        console.log('changed airplay volume');
-      });
-    }
-    if( stereoAirplayDevice !== null ){
-      stereoAirplayDevice.setVolume(volume, function(){
-        console.log('changed airplay volume');
-      });
-    }
+    airplayDevices.forEach(airplayDevice => {
+      if (airplayDevice !== null) {
+        airplayDevice.setVolume(volume, function(){
+          console.log('changed airplay volume');
+        });
+      }
+    })
     
     if (aplayInstance !== null){
       console.log('todo: update correct speaker based on currentOutput device ID');
@@ -296,27 +319,28 @@ io.on('connection', function(socket){
     cleanupCurrentOutput();
 
     // TODO: rewrite how devices are stored to avoid the array split thingy
+    if (msg.startsWith("stereoAirplay")) {
+      selectedOutput = availableAirplayStereoOutputs[msg.substring(14)];
+      selectedOutput.devices.forEach(device => {
+        console.log('adding device: ' + device.host + ':' + device.port);
+        var airplayDevice = airtunes.add(device.host, {port: device.port, volume: volume, stereo: true})
+        airplayDevice.on('error', errorHandler)
+  
+  
+        airplayDevice.on('status', statHandler);
+        airplayDevices.push(airplayDevice)
+      })
+    }
     if (msg.startsWith("airplay")) {
-      var isStereo = false;
       selectedOutput = availableAirplayOutputs.find(output => output.id === msg);
 
-      if( selectedOutput.stereo !== false ) {
-        isStereo = true;
-        selectedOutput = availableAirplayOutputs.find(output => output.stereo === selectedOutput.stereo && output.tv === false);
-        stereoOutput = availableAirplayOutputs.find(output => output.id !== selectedOutput.id && output.stereo === selectedOutput.stereo && output.tv === false);
-      }
-
       console.log('adding device: ' + selectedOutput.host + ':' + selectedOutput.port);
-      airplayDevice = airtunes.add(selectedOutput.host, {port: selectedOutput.port, volume: volume, stereo: isStereo})
+      var airplayDevice = airtunes.add(selectedOutput.host, {port: selectedOutput.port, volume: volume, stereo: false})
       airplayDevice.on('error', errorHandler)
 
-      if( isStereo && stereoOutput !== null ) {
-        console.log('adding stereo device: ' + stereoOutput.host + ':' + stereoOutput.port);
-        stereoAirplayDevice = airtunes.add(stereoOutput.host, {port: stereoOutput.port, volume: volume, stereo: isStereo});
-        stereoAirplayDevice.on('error', errorHandler)
-      }
 
       airplayDevice.on('status', statHandler);
+      airplayDevices.push(airplayDevice)
     }
     if (msg.startsWith("plughw:")){
       aplayInstance = spawn("aplay", [
