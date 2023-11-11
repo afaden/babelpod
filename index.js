@@ -4,7 +4,7 @@ var io = require('socket.io')(http);
 var spawn = require('child_process').spawn;
 var util = require('util');
 var stream = require('stream');
-var mdns = require('mdns-js');
+var mdns = require('dnssd2');
 var fs = require('fs');
 var AirTunes = require('airtunes2');
 var blue = require('bluetoothctl');
@@ -71,7 +71,7 @@ blue.Bluetooth();
 
 setTimeout(function(){
   blue.getPairedDevices()
-}, 10000);
+}, 5000);
 
 blue.on(blue.bluetoothEvents.Device, function (devices) {
   console.log('devices:' + JSON.stringify(devices,null,2));
@@ -147,17 +147,10 @@ updateAllOutputs();
 // //   console.log("service down: ", service);
 // // });
 
-var browser = mdns.createBrowser(mdns.tcp('airplay'));
-browser.on('ready', function () {
-  browser.discover(); 
-  setInterval(function () {
-    browser.discover(); 
-  }, 30000);
-    
-});
+var browser = mdns.Browser(mdns.tcp('airplay'));
 
-browser.on('update', function (data) {
-  // console.log("service up: ", data);
+browser.on('serviceUp', function (data) {
+  console.log("service up: ", data);
   // console.log(service.addresses);
   // console.log(data.fullname);
   if (data.fullname){
@@ -192,9 +185,12 @@ browser.on('update', function (data) {
   }
   // console.log(airplayDevices);
 });
-// browser.on('serviceDown', function(service) {
-//   console.log("service down: ", service);
-// });
+browser.on('serviceDown', function(service) {
+   console.log("service down: ", service)
+   availableAirplayOutputs = availableAirplayOutputs.some(e => e.id !== id)
+});
+
+browser.start()
 
 function cleanupCurrentInput(){
   inputStream.unpipe(outputStream);
