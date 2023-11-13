@@ -196,9 +196,12 @@ browser.on('serviceDown', function(data) {
 
       stereoName = data.txt.gpn || false
       
-      if (stereoName)
-        availableAirplayStereoOutputs = availableAirplayStereoOutputs.filter(e => e.id !== stereoName)
-      else
+      if (stereoName && availableAirplayStereoOutputs[stereoName] && availableAirplayStereoOutputs[stereoName].devices) {
+        availableAirplayStereoOutputs[stereoName].devices = availableAirplayStereoOutputs[stereoName].devices.filter(e => e.id !== id)
+        if (availableAirplayStereoOutputs[stereoName].devices.length <= 0) {
+          delete availableAirplayStereoOutputs[stereoName]
+        }
+      } else if (!stereoName)
         availableAirplayOutputs = availableAirplayOutputs.filter(e => e.id !== id)
 
       updateAllOutputs()
